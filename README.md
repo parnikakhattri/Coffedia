@@ -1,8 +1,8 @@
 Coffedia - Your Encyclopedia of Coffee ☕
 
 Purpose:
-Coffedia is an interactive R Shiny application designed for coffee enthusiasts to explore coffee brands, stores, and trends across the world. 
-The app allows users to visualize brand popularity, explore coffee outlets, and submit feedback on their coffee experiences.
+Coffedia is an interactive R Shiny application designed for coffee enthusiasts to explore coffee brands, stores and trends across the world. 
+The app allows users to visualise brand popularity, explore coffee outlets and submit feedback on their coffee experiences.
 
 Features:
 1. About Tab:
@@ -49,6 +49,9 @@ Usage Instructions:
 - Learn more about Coffedia on the About Tab.
 - Explore brand popularity and outlets on their respective tabs.
 - Submit and view feedback on the Feedback Tab.
+
+Shiny App Link:
+The Coffedia Shiny app is live and can be accessed here: http://parnikakhattri.shinyapps.io/Coffedia1
 
 Contact:
 If you encounter any issues or have suggestions for improvements, feel free to contact the developer.
