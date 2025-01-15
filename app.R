@@ -124,20 +124,16 @@ ui <- fluidPage(
           p("Refine your search to explore coffee brand popularity within the country.",
             class = "section-description"
           ),
-
           selectInput("Country", "Choose Country",
                       choices = unique(coffee_chains$country),
                       selected = "Australia",
                       width = "100%"),
-
           selectInput("Brands", "Select Brands",
                       choices = unique(coffee_chains$Brand),
                       selected = c("Starbucks", "Timhorton", "Dunkin Donuts"),
                       multiple = TRUE,
                       width = "100%"),
-
-          actionButton(inputId = "resetFilters",label = "Reset Filters",icon = icon("refresh"))),
-
+        actionButton(inputId = "resetFilters",label = "Reset Filters",icon = icon("refresh"))),
         mainPanel(
           class = "panel",
           h3("Brand Popularity by Country", class = "section-title"),
@@ -161,13 +157,11 @@ ui <- fluidPage(
           h3("Filters", class = "section-title"),
           p("Refine your search to explore coffee outlets in selected cities.",
             class = "section-description"),
-
           selectInput(inputId = "City",
                       label = "Choose City:",
                       choices = unique(coffee_chains$City),
                       selected = "Broadbeach",
                       selectize = TRUE),
-
           selectInput(
             inputId = "BrandTable",
             label = "Select Brands:",
@@ -177,8 +171,6 @@ ui <- fluidPage(
             selectize = TRUE
           )
         ),
-
-
         mainPanel(
           class = "panel",
           h3("Coffee Outlets Table", class = "section-title"),
@@ -219,7 +211,7 @@ ui <- fluidPage(
             inputId = "SubmitFeedback",
             label = "Submit Feedback",
             icon = icon("paper-plane")
-          )
+          ),
         ),
         mainPanel(
           class = "panel",
@@ -227,7 +219,7 @@ ui <- fluidPage(
           p("See what others are saying! The word cloud below highlights the most frequently mentioned terms in user reviews.",
             class = "section-description"),
           wordcloud2Output("review_wordcloud"),
-          uiOutput("feedback_review")
+          uiOutput("feedback_reviews")
         )
       )
     )
@@ -283,33 +275,43 @@ server <- function(input, output, session) {
 
 
   # Feedback Tab
-  feedback_data <- reactiveVal(data.frame(
-    Name = character(0),
-    Email = character(0),
-    City = character(0),
-    Brand = character(0),
-    Rating = numeric(0),
-    Review = character(0)
-  ))
-
+  feedback_data <- reactiveVal({
+    if (file.exists("data/feedback_data.csv")) {
+      read.csv("data/feedback_data.csv", stringsAsFactors = FALSE)
+    } else {
+      data.frame(
+        Name = character(0),
+        Email = character(0),
+        City = character(0),
+        Brand = character(0),
+        Rating = numeric(0),
+        Review = character(0)
+      )
+    }
+  })
+  
   observe({
     updateSelectizeInput(
       session,
       "CityFeedback",
-      choices = unique(coffee_chains$City),
+      choices = c("", unique(coffee_chains$City)),
       server = TRUE
     )
   })
-
+  
   observeEvent(input$CityFeedback, {
+    available_brands <- unique(coffee_chains$Brand[coffee_chains$City == input$CityFeedback])
+    if (length(available_brands) == 0) {
+      available_brands <- "No brands available"
+    }
     updateSelectizeInput(
       session,
       "BrandFeedback",
-      choices = unique(coffee_chains$Brand[coffee_chains$City == input$CityFeedback]),
+      choices = c("", available_brands),
       server = TRUE
     )
   })
-
+  
   observeEvent(input$SubmitFeedback, {
     validate(
       need(input$UserName != "", "Please enter your name."),
@@ -319,7 +321,7 @@ server <- function(input, output, session) {
       need(input$SliderFeedback > 0, "Please rate the store."),
       need(input$ReviewFeedback != "", "Please write your review.")
     )
-
+    
     new_feedback <- data.frame(
       Name = input$UserName,
       Email = input$UserEmail,
@@ -328,29 +330,30 @@ server <- function(input, output, session) {
       Rating = input$SliderFeedback,
       Review = input$ReviewFeedback
     )
-
+    
     updated_feedback <- rbind(feedback_data(), new_feedback)
     feedback_data(updated_feedback)
-    write.csv(updated_feedback, "feedback_data.csv", row.names = FALSE)
+    
+    write.csv(updated_feedback, "data/feedback_data.csv", row.names = FALSE)
     showNotification("Thank you for your feedback!", type = "message")
   })
-
+  
   output$review_wordcloud <- renderWordcloud2({
     feedback <- feedback_data()
     validate(need(nrow(feedback) > 0, "No feedback submitted yet!"))
-
     review_words <- unlist(strsplit(tolower(paste(feedback$Review, collapse = " ")), "\\s+"))
+    review_words <- review_words[review_words != ""]
     word_freq <- as.data.frame(table(review_words))
     colnames(word_freq) <- c("word", "freq")
     word_freq <- word_freq[order(-word_freq$freq), ]
-
+    validate(need(nrow(word_freq) > 0, "No words to display in the word cloud."))
     wordcloud2(word_freq, size = 1)
   })
-
+  
   output$feedback_reviews <- renderUI({
     feedback <- feedback_data()
     validate(need(nrow(feedback) > 0, "No feedback submitted yet!"))
-
+    
     tagList(
       lapply(1:nrow(feedback), function(i) {
         feedback_row <- feedback[i, ]
@@ -363,7 +366,6 @@ server <- function(input, output, session) {
       })
     )
   })
-
 }
 
 shinyApp(ui, server)
